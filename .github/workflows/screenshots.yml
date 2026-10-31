@@ -1,0 +1,96 @@
+name: Screenshots
+
+# Builds the Rust app on a Windows runner, opens its windows with the --settings and
+# --flyout test flags, captures them, and commits the PNGs to docs/screenshots.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  screenshots:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        working-directory: dimmerbut-rs
+        run: cargo build --release
+
+      - name: Capture screenshots
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @"
+          using System;
+          using System.Drawing;
+          using System.Runtime.InteropServices;
+          public static class Win {
+              [StructLayout(LayoutKind.Sequential)]
+              public struct RECT { public int Left, Top, Right, Bottom; }
+              [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+              public static extern IntPtr FindWindow(string cls, string title);
+              [DllImport("user32.dll")]
+              public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+          }
+          "@
+
+          $out = Join-Path $env:GITHUB_WORKSPACE 'docs/screenshots'
+          New-Item -ItemType Directory -Force $out | Out-Null
+          $exe = Join-Path $env:GITHUB_WORKSPACE 'dimmerbut-rs/target/release/dimmerbut.exe'
+
+          function Save-Window($cls, $file) {
+              $hwnd = [IntPtr]::Zero
+              for ($i = 0; $i -lt 30 -and $hwnd -eq [IntPtr]::Zero; $i++) {
+                  Start-Sleep -Seconds 1
+                  $hwnd = [Win]::FindWindow($cls, $null)
+              }
+              if ($hwnd -eq [IntPtr]::Zero) { throw "Window $cls not found" }
+              Start-Sleep -Seconds 2
+              $r = New-Object Win+RECT
+              [Win]::GetWindowRect($hwnd, [ref]$r) | Out-Null
+              $w = $r.Right - $r.Left
+              $h = $r.Bottom - $r.Top
+              $bmp = New-Object System.Drawing.Bitmap $w, $h
+              $g = [System.Drawing.Graphics]::FromImage($bmp)
+              $g.CopyFromScreen($r.Left, $r.Top, 0, 0, [System.Drawing.Size]::new($w, $h))
+              $bmp.Save((Join-Path $out $file), [System.Drawing.Imaging.ImageFormat]::Png)
+              $g.Dispose()
+              $bmp.Dispose()
+          }
+
+          $app = Start-Process -FilePath $exe -ArgumentList '--settings' -PassThru
+          try {
+              Save-Window 'DimmerButSettings' 'settings.png'
+          } finally {
+              Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+          }
+
+          $app = Start-Process -FilePath $exe -ArgumentList '--flyout' -PassThru
+          try {
+              Save-Window 'DimmerButFlyout' 'flyout.png'
+          } finally {
+              Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/screenshots/*.png
+
+      - name: Commit screenshots
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          if git diff --cached --quiet; then
+            echo "No screenshot changes"
+          else
+            git commit -m "Update screenshots"
+            git push
+          fi
