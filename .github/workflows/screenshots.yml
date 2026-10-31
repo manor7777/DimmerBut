@@ -25,7 +25,7 @@ jobs:
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.Drawing, System.Windows.Forms
-          Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @"
+          Add-Type -TypeDefinition @"
           using System;
           using System.Drawing;
           using System.Runtime.InteropServices;
@@ -47,9 +47,9 @@ jobs:
                   return found;
               }
               public static string ListAll() {
-                  var lines = new System.Collections.Generic.List<string>();
-                  EnumWindows((h, l) => { lines.Add(ClassOf(h) + " | " + TextOf(h)); return true; }, IntPtr.Zero);
-                  return string.Join("\n", lines);
+                  var sb = new System.Text.StringBuilder();
+                  EnumWindows((h, l) => { sb.AppendLine(ClassOf(h) + " | " + TextOf(h)); return true; }, IntPtr.Zero);
+                  return sb.ToString();
               }
               [DllImport("user32.dll")]
               public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
