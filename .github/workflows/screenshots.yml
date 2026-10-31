@@ -32,8 +32,25 @@ jobs:
           public static class Win {
               [StructLayout(LayoutKind.Sequential)]
               public struct RECT { public int Left, Top, Right, Bottom; }
+              public delegate bool EnumProc(IntPtr hwnd, IntPtr lparam);
+              [DllImport("user32.dll")]
+              public static extern bool EnumWindows(EnumProc proc, IntPtr lparam);
               [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-              public static extern IntPtr FindWindow(string cls, string title);
+              public static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder name, int max);
+              [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+              public static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int max);
+              public static string ClassOf(IntPtr hwnd) { var sb = new System.Text.StringBuilder(256); GetClassName(hwnd, sb, 256); return sb.ToString(); }
+              public static string TextOf(IntPtr hwnd) { var sb = new System.Text.StringBuilder(256); GetWindowText(hwnd, sb, 256); return sb.ToString(); }
+              public static IntPtr FindByClass(string cls) {
+                  IntPtr found = IntPtr.Zero;
+                  EnumWindows((h, l) => { if (ClassOf(h) == cls) { found = h; return false; } return true; }, IntPtr.Zero);
+                  return found;
+              }
+              public static string ListAll() {
+                  var lines = new System.Collections.Generic.List<string>();
+                  EnumWindows((h, l) => { lines.Add(ClassOf(h) + " | " + TextOf(h)); return true; }, IntPtr.Zero);
+                  return string.Join("\n", lines);
+              }
               [DllImport("user32.dll")]
               public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
           }
@@ -47,9 +64,10 @@ jobs:
               $hwnd = [IntPtr]::Zero
               for ($i = 0; $i -lt 30 -and $hwnd -eq [IntPtr]::Zero; $i++) {
                   Start-Sleep -Seconds 1
-                  $hwnd = [Win]::FindWindow($cls, $null)
+                  $hwnd = [Win]::FindByClass($cls)
               }
               if ($hwnd -eq [IntPtr]::Zero) {
+                  [Win]::ListAll() | Write-Host
                   $diag = Join-Path $env:GITHUB_WORKSPACE 'docs/diagnostics'
                   New-Item -ItemType Directory -Force $diag | Out-Null
                   $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
