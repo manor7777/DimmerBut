@@ -95,11 +95,14 @@ jobs:
               $bmp.Dispose()
           }
 
+          # Wait for each instance to exit fully: the single-instance mutex is held until then,
+          # and a second launch that starts too early exits silently.
           $app = Start-Process -FilePath $exe -ArgumentList '--settings' -PassThru
           try {
               Save-Window 'DimmerButSettings' 'settings.png'
           } finally {
               Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+              $app.WaitForExit()
           }
 
           $app = Start-Process -FilePath $exe -ArgumentList '--flyout' -PassThru
@@ -107,6 +110,7 @@ jobs:
               Save-Window 'DimmerButFlyout' 'flyout.png'
           } finally {
               Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+              $app.WaitForExit()
           }
 
       - uses: actions/upload-artifact@v4
