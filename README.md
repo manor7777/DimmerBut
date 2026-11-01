@@ -37,14 +37,7 @@ The binary is written to `dimmerbut-rs/target/release/dimmerbut.exe`. The build 
 
 ## Releases
 
-The [Release workflow](.github/workflows/release.yml) builds and publishes a release when you push a version tag. The tag must match the version in `dimmerbut-rs/Cargo.toml`:
-
-```powershell
-git tag v0.2.0
-git push origin v0.2.0
-```
-
-You can also run it from the Actions tab with **Run workflow** and a tag name. The first release uses this README as its notes; later ones use GitHub's generated notes.
+The [Release workflow](.github/workflows/release.yml) builds `dimmerbut.exe` and publishes a release. Run it from the Actions tab with **Run workflow**; there is nothing to fill in. The version is the latest `v*` tag with the patch number bumped by one, or the `Cargo.toml` version for the very first release. The first release uses this README as its notes; later ones use GitHub's generated notes.
 
 ## Command-line flags
 

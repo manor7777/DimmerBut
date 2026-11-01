@@ -1,24 +1,16 @@
 name: Release
 
 # Builds a release exe on a Windows runner and publishes it as a GitHub release.
-# Push a tag like v0.2.0, or run the workflow by hand and give it a tag name.
+# Run it from the Actions tab: the version is the latest v* tag with the patch number
+# bumped (or the Cargo.toml version if there are no tags yet), so nothing needs typing.
 # The first release uses README.md as its notes; later releases use GitHub's
 # generated notes.
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Release tag, e.g. v0.2.0
-        required: true
 
 permissions:
   contents: write
-
-env:
-  TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   release:
@@ -34,18 +26,23 @@ jobs:
         with:
           workspaces: dimmerbut-rs
 
-      - name: Check tag matches Cargo.toml
+      - name: Work out the version
         shell: bash
         run: |
-          version=$(grep -m1 '^version' dimmerbut-rs/Cargo.toml | cut -d'"' -f2)
-          if [ "$TAG" != "v$version" ]; then
-            echo "Tag $TAG does not match Cargo.toml version v$version"
-            exit 1
+          last=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$last" ]; then
+            version=$(grep -m1 '^version' dimmerbut-rs/Cargo.toml | cut -d'"' -f2)
+          else
+            IFS=. read -r major minor patch <<< "${last#v}"
+            version="$major.$minor.$((patch + 1))"
           fi
+          echo "TAG=v$version" >> "$GITHUB_ENV"
+          # Stamp the build with the release version (not committed).
+          sed -i "0,/^version = .*/s//version = \"$version\"/" dimmerbut-rs/Cargo.toml
 
       - name: Build
         working-directory: dimmerbut-rs
-        run: cargo build --release --locked
+        run: cargo build --release
 
       - name: Write release notes
         id: notes
