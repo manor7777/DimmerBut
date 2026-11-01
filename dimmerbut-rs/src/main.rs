@@ -53,7 +53,7 @@ fn main() {
     }));
 
     unsafe {
-        // Same mutex name as the VB.NET version, so the two can't run side by side.
+        // Named mutex so only one instance runs at a time.
         let _mutex = CreateMutexW(None, true, w!("Local\\DimmerBut.SingleInstance"));
         if GetLastError() == ERROR_ALREADY_EXISTS {
             return;

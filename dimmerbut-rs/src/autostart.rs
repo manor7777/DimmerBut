@@ -1,5 +1,5 @@
 //! "Start with Windows": a value under HKCU\...\Run (no admin rights needed).
-//! Uses the same value name as the VB.NET version, so an existing entry is recognised.
+//! The value name is stable across versions, so an existing entry is recognised.
 
 use crate::wide;
 use windows::Win32::Foundation::ERROR_SUCCESS;

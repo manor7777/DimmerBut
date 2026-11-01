@@ -3,7 +3,7 @@
 //! It is a borderless popup that is custom drawn with Direct2D into a premultiplied-alpha DIB (see
 //! `gfx::Surface`), with a DWM acrylic backdrop behind it. Because the window's frame is extended over the
 //! whole client area, pixels we leave at alpha 0 show the blurred desktop - this is what makes the acrylic
-//! actually visible (GDI+ cannot produce real per-pixel alpha, which is why the VB.NET version never got it).
+//! actually visible.
 
 use crate::app::{AppCore, WM_MONITORS_DONE};
 use crate::gfx::Surface;

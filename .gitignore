@@ -7,3 +7,9 @@ obj/
 
 # Rust
 target/
+
+# graphify (keep graph.json, graph.html and GRAPH_REPORT.md; drop caches and temp files)
+graphify-out/cache/
+graphify-out/.graphify_*
+graphify-out/cost.json
+graphify-out/manifest.json

@@ -1,5 +1,5 @@
-//! Persistent settings. The file location and format match the original VB.NET app
-//! (`%APPDATA%\DimmerBut\settings.json`, PascalCase keys), so an existing configuration is picked up as-is.
+//! Persistent settings, stored at
+//! `%APPDATA%\DimmerBut\settings.json` with PascalCase keys.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
