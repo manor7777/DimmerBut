@@ -2,8 +2,8 @@ name: Release
 
 # Builds a release exe on a Windows runner and publishes it as a GitHub release.
 # Push a tag like v0.2.0, or run the workflow by hand and give it a tag name.
-# The first release uses README.md plus the commit history as its notes; later
-# releases use GitHub's generated notes.
+# The first release uses README.md as its notes; later releases use GitHub's
+# generated notes.
 
 on:
   push:
@@ -47,14 +47,6 @@ jobs:
         working-directory: dimmerbut-rs
         run: cargo build --release --locked
 
-      - name: Package
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force dist | Out-Null
-          $zip = "dist/DimmerBut-$env:TAG-windows-x64.zip"
-          Compress-Archive -Path dimmerbut-rs/target/release/dimmerbut.exe, README.md -DestinationPath $zip
-          (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() + "  " + (Split-Path $zip -Leaf) | Set-Content "$zip.sha256"
-
       - name: Write release notes
         id: notes
         shell: bash
@@ -66,11 +58,7 @@ jobs:
           else
             echo "first=true" >> "$GITHUB_OUTPUT"
             raw="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-            {
-              sed "s#(docs/screenshots/#($raw/docs/screenshots/#g" README.md
-              printf '\n## Changes\n\n'
-              git log --no-merges --pretty='- %s' | grep -v '^- Update screenshots$'
-            } > notes.md
+            sed "s#(docs/screenshots/#($raw/docs/screenshots/#g" README.md > notes.md
           fi
 
       - name: Publish release
@@ -83,4 +71,4 @@ jobs:
           else
             notes=(--generate-notes)
           fi
-          gh release create "$TAG" dist/* --title "DimmerBut $TAG" --target "${{ github.sha }}" "${notes[@]}"
+          gh release create "$TAG" dimmerbut-rs/target/release/dimmerbut.exe --title "DimmerBut $TAG" --target "${{ github.sha }}" "${notes[@]}"

@@ -24,7 +24,7 @@ DimmerBut is written in Rust (`dimmerbut-rs/`) with native Win32 and Direct2D dr
 
 ## Install
 
-Download `DimmerBut-<version>-windows-x64.zip` from the [Releases page](../../releases), unzip it and run `dimmerbut.exe`. The icon appears in the tray; click it to open the flyout. Each zip has a `.sha256` file next to it for checking the download. Turn on **Start with Windows** in settings if you want it to launch at sign-in.
+Download `dimmerbut.exe` from the [Releases page](../../releases) and run it. The icon appears in the tray; click it to open the flyout. Turn on **Start with Windows** in settings if you want it to launch at sign-in.
 
 ## Building
 
@@ -44,7 +44,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-You can also run it from the Actions tab with **Run workflow** and a tag name. The first release uses this README plus the commit history as its notes; later ones use GitHub's generated notes.
+You can also run it from the Actions tab with **Run workflow** and a tag name. The first release uses this README as its notes; later ones use GitHub's generated notes.
 
 ## Command-line flags
 
