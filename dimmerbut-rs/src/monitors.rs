@@ -209,7 +209,8 @@ mod wmi {
 
     /// Scoped COM apartment + connection to ROOT\WMI.
     pub struct Session {
-        svc: IWbemServices,
+        // ManuallyDrop: must be released *before* CoUninitialize (see Drop), not after it.
+        svc: std::mem::ManuallyDrop<IWbemServices>,
         uninit: bool,
     }
 
@@ -230,7 +231,7 @@ mod wmi {
         pub fn open() -> Option<Session> {
             let uninit = init_com()?;
             match Self::connect() {
-                Some(svc) => Some(Session { svc, uninit }),
+                Some(svc) => Some(Session { svc: std::mem::ManuallyDrop::new(svc), uninit }),
                 None => {
                     if uninit {
                         unsafe { CoUninitialize() };
@@ -314,6 +315,9 @@ mod wmi {
 
     impl Drop for Session {
         fn drop(&mut self) {
+            // Release the WMI proxy while COM is still up. Releasing it after CoUninitialize
+            // (the default field-drop order) crashes with an access violation on recent Windows builds.
+            unsafe { std::mem::ManuallyDrop::drop(&mut self.svc) };
             if self.uninit {
                 unsafe { CoUninitialize() };
             }

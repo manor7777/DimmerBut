@@ -1,17 +1,17 @@
-# Graph Report - DimmerBut  (2026-11-01)
+# Graph Report - DimmerBut  (2026-11-12)
 
 ## Corpus Check
-- 20 files · ~17,640 words
+- 20 files · ~17,659 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 4 file(s) not represented in the graph (top: (none) 2, .toml 1, .ico 1)
 
 ## Summary
-- 567 nodes · 1057 edges · 20 communities (15 shown, 5 thin omitted)
+- 560 nodes · 1050 edges · 20 communities (16 shown, 4 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 50 edges (avg confidence: 0.73)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `037c8f96`
+- Built from commit: `36d1bf96`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,7 +63,7 @@
 ## Import Cycles
 - 2-file cycle: `dimmerbut-rs/src/app.rs -> dimmerbut-rs/src/flyout.rs -> dimmerbut-rs/src/app.rs`
 
-## Communities (20 total, 5 thin omitted)
+## Communities (20 total, 4 thin omitted)
 
 ### Community 0 - "window.rs"
 Cohesion: 0.05
@@ -75,11 +75,11 @@ Nodes (15): add_from_hmonitor(), Cmd, Brightness, Power, current_brightness(), e
 
 ### Community 2 - "ui.rs"
 Cohesion: 0.10
-Nodes (11): FIELD_BG, ACCENT, apply_accent_acrylic(), apply_backdrop(), backdrop_supported(), BLACK, CLEAR, icon_family() (+3 more)
+Nodes (10): FIELD_BG, ACCENT, apply_accent_acrylic(), apply_backdrop(), backdrop_supported(), BLACK, icon_family(), make_format() (+2 more)
 
 ### Community 3 - "Flyout"
 Cohesion: 0.08
-Nodes (18): AppCore, Flyout, flyout_proc(), Fx, Hit, ConfirmCheck, ConfirmNo, ConfirmYes (+10 more)
+Nodes (19): AppCore, Flyout, flyout_proc(), Fx, Hit, ConfirmCheck, ConfirmNo, ConfirmYes (+11 more)
 
 ### Community 4 - "settings_ui.rs"
 Cohesion: 0.05
@@ -94,8 +94,8 @@ Cohesion: 0.05
 Nodes (40): Act, Cancel, ClearKey, Find, Save, colorref(), Dlg, dlg_proc() (+32 more)
 
 ### Community 7 - "steps"
-Cohesion: 0.07
-Nodes (28): env, GH_TOKEN, TAG, tag, jobs, release, name, on (+20 more)
+Cohesion: 0.10
+Nodes (20): GH_TOKEN, jobs, release, name, on, workflow_dispatch, permissions, contents (+12 more)
 
 ### Community 8 - "flyout.rs"
 Cohesion: 0.06
@@ -125,25 +125,29 @@ Nodes (11): Building, Command-line flags, DimmerBut, Features, Files, Install, K
 Cohesion: 0.24
 Nodes (5): DARK, LIT, moon_icon(), RING, sample()
 
+### Community 16 - "DimmerBut"
+Cohesion: 0.50
+Nodes (3): DimmerBut, Git, graphify
+
 ## Knowledge Gaps
 - **24 isolated node(s):** `dimmerbut`, `DimSlider`, `Night`, `Settings`, `ConfirmCheck` (+19 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 244 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 242 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `AppSettings` connect `AppSettings` to `window.rs`, `Flyout`, `settings_ui.rs`, `app.rs`, `Dlg`, `settings.rs`?**
-  _High betweenness centrality (0.107) - this node is a cross-community bridge._
+  _High betweenness centrality (0.110) - this node is a cross-community bridge._
 - **What connects `dimmerbut`, `DimSlider`, `Night` to the rest of the system?**
   _24 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `window.rs` be split into smaller, more focused modules?**
   _Cohesion score 0.054274084124830396 - nodes in this community are weakly interconnected._
 - **Why does `Dlg` connect `Dlg` to `Flyout`, `settings_ui.rs`, `AppSettings`, `Surface`, `Fmts`?**
-  _High betweenness centrality (0.095) - this node is a cross-community bridge._
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
 - **Should `monitors.rs` be split into smaller, more focused modules?**
   _Cohesion score 0.07030527289546716 - nodes in this community are weakly interconnected._
 - **Why does `Flyout` connect `Flyout` to `window.rs`, `monitors.rs`, `app.rs`, `flyout.rs`, `Surface`?**
-  _High betweenness centrality (0.093) - this node is a cross-community bridge._
+  _High betweenness centrality (0.096) - this node is a cross-community bridge._
 - **Should `ui.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.09523809523809523 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09971509971509972 - nodes in this community are weakly interconnected._
