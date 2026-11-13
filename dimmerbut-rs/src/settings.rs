@@ -28,6 +28,15 @@ pub struct AppSettings {
     pub wake_minutes: i32,
     pub transition_minutes: i32,
 
+    // Dim schedule: ease brightness from `sched_day_brightness` to `sched_night_brightness` between the
+    // start and end times (minutes after midnight), using monitor brightness or extra dimming as fallback.
+    pub sched_enabled: bool,
+    pub sched_start_minutes: i32,
+    pub sched_end_minutes: i32,
+    pub sched_ramp_minutes: i32,
+    pub sched_day_brightness: i32,
+    pub sched_night_brightness: i32,
+
     // Location (looked up once by city name, or typed in)
     pub has_location: bool,
     pub location_name: String,
@@ -61,6 +70,12 @@ impl Default for AppSettings {
             bed_kelvin: 2700,
             wake_minutes: 450,
             transition_minutes: 60,
+            sched_enabled: false,
+            sched_start_minutes: 22 * 60,
+            sched_end_minutes: 7 * 60,
+            sched_ramp_minutes: 30,
+            sched_day_brightness: 100,
+            sched_night_brightness: 30,
             has_location: false,
             location_name: String::new(),
             latitude: 0.0,
@@ -108,6 +123,12 @@ impl AppSettings {
         self.wake_minutes = self.wake_minutes.clamp(0, 1439);
         self.transition_minutes = self.transition_minutes.clamp(1, 240);
         self.poll_interval_seconds = self.poll_interval_seconds.clamp(5, 120);
+        self.sched_start_minutes = self.sched_start_minutes.clamp(0, 1439);
+        self.sched_end_minutes = self.sched_end_minutes.clamp(0, 1439);
+        self.sched_ramp_minutes = self.sched_ramp_minutes.clamp(1, 240);
+        // keep software fallback within MAX_LEVEL (night >= 10% brightness)
+        self.sched_day_brightness = self.sched_day_brightness.clamp(10, 100);
+        self.sched_night_brightness = self.sched_night_brightness.clamp(100 - MAX_LEVEL, self.sched_day_brightness);
         self.latitude = self.latitude.clamp(-90.0, 90.0);
         self.longitude = self.longitude.clamp(-180.0, 180.0);
     }

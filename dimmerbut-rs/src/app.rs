@@ -36,12 +36,17 @@ pub struct App {
     pub core: AppCore,
     pub flyout: Flyout,
     tray_icon: Option<HICON>,
+    /// Dim schedule state: last position applied, whether a monitor scan was started for it, and the last
+    /// (brightness, monitor count) written to hardware.
+    sched_f: f64,
+    sched_scanned: bool,
+    sched_hw: Option<(i32, usize)>,
 }
 
 impl App {
     pub fn new(hwnd: HWND, settings: AppSettings) -> windows::core::Result<Self> {
         let dim = DimController::new(&settings);
-        Ok(Self { hwnd, core: AppCore { settings, dim }, flyout: Flyout::new()?, tray_icon: None })
+        Ok(Self { hwnd, core: AppCore { settings, dim }, flyout: Flyout::new()?, tray_icon: None, sched_f: 0.0, sched_scanned: false, sched_hw: None })
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -67,13 +72,64 @@ impl App {
 
     /// Periodic / system-event refresh of the colour matrix.
     pub fn reapply(&mut self) {
-        if self.core.dim.apply(&self.core.settings) {
+        let mut changed = self.schedule_tick();
+        changed |= self.core.dim.apply(&self.core.settings);
+        if changed {
             self.refresh_ui();
         }
     }
 
+    /// Eases brightness along the dim schedule: monitor brightness when a controller exists, otherwise
+    /// extra dimming. Idle (and leaves manual changes alone) while outside the schedule.
+    /// Returns true if the UI should refresh.
+    fn schedule_tick(&mut self) -> bool {
+        let s = &self.core.settings;
+        let f = if s.sched_enabled { crate::nightmode::schedule_factor(s, chrono::Local::now()) } else { 0.0 };
+        if f <= 0.0 && self.sched_f <= 0.0 {
+            return false;
+        }
+        if self.flyout.monitors.is_empty() && !self.sched_scanned {
+            // No scan has run yet (the flyout hasn't been opened): look for controllers first.
+            self.sched_scanned = true;
+            self.flyout.begin_detect(self.hwnd);
+            return false;
+        }
+        let (day, night) = (s.sched_day_brightness, s.sched_night_brightness);
+        let target = day as f64 + (night - day) as f64 * f;
+        let mut changed;
+        if self.flyout.monitors.is_empty() {
+            let dim = ((1.0 - target / day as f64) * 100.0) as f32;
+            changed = self.core.dim.set_schedule_dim(&self.core.settings, dim);
+        } else {
+            changed = self.core.dim.set_schedule_dim(&self.core.settings, 0.0);
+            let b = target.round() as i32;
+            let key = (b, self.flyout.monitors.len());
+            if self.sched_hw != Some(key) {
+                self.sched_hw = Some(key);
+                for m in &mut self.flyout.monitors {
+                    if m.percent != b {
+                        m.request_brightness(b);
+                    }
+                }
+                changed = true;
+            }
+        }
+        self.sched_f = f;
+        if f <= 0.0 {
+            self.sched_hw = None;
+        }
+        changed
+    }
+
     /// Called after the settings dialog changed `core.settings`.
     pub fn settings_changed(&mut self) {
+        self.sched_scanned = false;
+        self.sched_hw = None;
+        if !self.core.settings.sched_enabled {
+            // switched off mid-schedule: drop any software dimming it added
+            self.sched_f = 0.0;
+            self.core.dim.set_schedule_dim(&self.core.settings, 0.0);
+        }
         self.core.dim.apply(&self.core.settings);
         self.configure_poll_timer();
         self.refresh_ui();

@@ -69,6 +69,22 @@ pub fn get_kelvin(s: &AppSettings, now: DateTime<Local>) -> f64 {
     bed_k
 }
 
+/// Dim schedule position: 0.0 = daytime brightness, 1.0 = night brightness. Eases in over the ramp after
+/// the start time and back out over the ramp after the end time (the window may wrap past midnight).
+pub fn schedule_factor(s: &AppSettings, now: DateTime<Local>) -> f64 {
+    let ramp = (s.sched_ramp_minutes as f64).max(1.0);
+    let start = s.sched_start_minutes as f64;
+    let len = ((s.sched_end_minutes as f64 - start) % 1440.0 + 1440.0) % 1440.0;
+    let d = ((minutes_of(now) - start) % 1440.0 + 1440.0) % 1440.0;
+    if d < len {
+        ease(0.0, 1.0, d / ramp)
+    } else if d < len + ramp {
+        ease(0.0, 1.0, len / ramp) * (1.0 - ease(0.0, 1.0, (d - len) / ramp))
+    } else {
+        0.0
+    }
+}
+
 fn ease(a: f64, b: f64, x: f64) -> f64 {
     let u = x.clamp(0.0, 1.0);
     let u = u * u * (3.0 - 2.0 * u);

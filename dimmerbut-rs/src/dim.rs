@@ -11,6 +11,8 @@ pub struct DimController {
     mag_ready: bool,
     kelvin: f64,
     last_raised_kelvin: f64,
+    /// Extra dimming (0..MAX_LEVEL %) from the dim schedule when no monitor can be controlled; stacks on `level`.
+    sched: f32,
 }
 
 fn build_matrix(r: f32, g: f32, b: f32) -> MAGCOLOREFFECT {
@@ -25,7 +27,7 @@ fn build_matrix(r: f32, g: f32, b: f32) -> MAGCOLOREFFECT {
 
 impl DimController {
     pub fn new(s: &AppSettings) -> Self {
-        let mut c = Self { level: s.startup_level.clamp(0, MAX_LEVEL), mag_ready: false, kelvin: 0.0, last_raised_kelvin: 0.0 };
+        let mut c = Self { level: s.startup_level.clamp(0, MAX_LEVEL), mag_ready: false, kelvin: 0.0, last_raised_kelvin: 0.0, sched: 0.0 };
         c.apply(s);
         c
     }
@@ -59,6 +61,17 @@ impl DimController {
         changed
     }
 
+    /// Sets the schedule's software dimming. Returns true if the screen needed to be re-applied.
+    pub fn set_schedule_dim(&mut self, s: &AppSettings, pct: f32) -> bool {
+        let p = pct.clamp(0.0, MAX_LEVEL as f32);
+        if (p - self.sched).abs() < 0.05 {
+            return false;
+        }
+        self.sched = p;
+        self.apply(s);
+        true
+    }
+
     /// Toggles night mode. Returns true if it changed.
     pub fn set_night(&mut self, s: &mut AppSettings, on: bool) -> bool {
         if on == s.night_enabled {
@@ -73,7 +86,8 @@ impl DimController {
     /// Recomputes and applies the colour matrix. Returns true when the night temperature drifted far enough
     /// that the UI (tray tooltip, flyout) should refresh.
     pub fn apply(&mut self, s: &AppSettings) -> bool {
-        let dim_f = if s.dimming_enabled && self.level > 0 { 1.0 - self.level as f32 / 100.0 } else { 1.0 };
+        let manual = if s.dimming_enabled && self.level > 0 { 1.0 - self.level as f32 / 100.0 } else { 1.0 };
+        let dim_f = manual * (1.0 - self.sched / 100.0);
 
         let mut gains = [1.0f32; 3];
         if s.night_enabled {

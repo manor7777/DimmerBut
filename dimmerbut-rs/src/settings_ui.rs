@@ -41,6 +41,7 @@ const P_NIGHT: usize = 1;
 const P_LOC: usize = 2;
 const P_FLYOUT: usize = 3;
 const P_KEYS: usize = 4;
+const P_SCHED: usize = 5;
 
 // toggles
 const T_DIM: usize = 0;
@@ -52,7 +53,8 @@ const T_WARN: usize = 5;
 const T_POLL: usize = 6;
 const T_ACRYLIC: usize = 7;
 const T_KEYS: usize = 8;
-const TOGGLES: usize = 9;
+const T_SCHED: usize = 9;
+const TOGGLES: usize = 10;
 
 // numeric boxes
 const N_KDAY: usize = 0;
@@ -63,6 +65,11 @@ const N_TRANS: usize = 4;
 const N_LAT: usize = 5;
 const N_LON: usize = 6;
 const N_POLL: usize = 7;
+const N_SSTART: usize = 8;
+const N_SEND: usize = 9;
+const N_SRAMP: usize = 10;
+const N_SDAY: usize = 11;
+const N_SNIGHT: usize = 12;
 
 const PRESETS: [(i32, &str); 8] = [
     (1200, "Ember"),
@@ -497,6 +504,7 @@ impl Dlg {
         self.toggles[T_POLL] = s.auto_poll_monitors;
         self.toggles[T_ACRYLIC] = s.flyout_acrylic;
         self.toggles[T_KEYS] = s.hotkeys_enabled;
+        self.toggles[T_SCHED] = s.sched_enabled;
         self.startup_level = s.startup_level.clamp(0, MAX_LEVEL);
         self.hotkeys = [(s.increase_mods, s.increase_key), (s.decrease_mods, s.decrease_key)];
         self.has_loc = s.has_location;
@@ -504,7 +512,7 @@ impl Dlg {
 
         // --- chrome ---
         self.push(None, (24.0, 22.0, 150.0, 32.0), Kind::SidebarTitle);
-        let nav = [("\u{E706}", "Dimming"), ("\u{E708}", "Night mode"), ("\u{E707}", "Location"), ("\u{E7F4}", "Flyout"), ("\u{E765}", "Hotkeys")];
+        let nav = [("\u{E706}", "Dimming"), ("\u{E708}", "Night mode"), ("\u{E707}", "Location"), ("\u{E7F4}", "Flyout"), ("\u{E765}", "Hotkeys"), ("\u{E787}", "Schedule")];
         for (i, (icon, name)) in nav.iter().enumerate() {
             self.push(None, (12.0, 76.0 + i as f32 * 44.0, 166.0, 40.0), Kind::Nav(i, icon, name));
         }
@@ -608,6 +616,48 @@ impl Dlg {
             }
         }
         self.push(Some(P_KEYS), (CX, 244.0, CW, 20.0), Kind::Hint("Click a box, then press a combination. Delete clears it."));
+
+        // --- Schedule (steppers must be created in N_SSTART.. order) ---
+        self.push(Some(P_SCHED), (CX, 24.0, CW, 36.0), Kind::Title("Schedule"));
+        self.push(Some(P_SCHED), (CX, 72.0, CW, 56.0), Kind::Card);
+        self.toggle_row(P_SCHED, 72.0, T_SCHED, "Dim on a schedule", "Fade the screen down at night, and back up in the morning", &[]);
+        self.push(Some(P_SCHED), (CX, 144.0, CW, 20.0), Kind::Heading("Timing"));
+        self.push(Some(P_SCHED), (CX, 168.0, CW, 156.0), Kind::Card);
+        let time = (0.0, 1439.0, 5.0, Fmt::Time);
+        let timing = [
+            ("Start dimming", "Fades down from this time", time, s.sched_start_minutes),
+            ("Stop dimming", "Fades back up from this time", time, s.sched_end_minutes),
+            ("Fade length", "Minutes to ease each way", (1.0, 240.0, 5.0, Fmt::Num(0)), s.sched_ramp_minutes),
+        ];
+        for (i, (title, sub, n, v)) in timing.iter().enumerate() {
+            let y = 168.0 + i as f32 * 52.0;
+            if i > 0 {
+                self.divider(P_SCHED, y);
+            }
+            let l = self.row_label(P_SCHED, y, title, sub);
+            let st = self.stepper(P_SCHED, RX - 132.0, y + 10.0, 132.0, *n, *v as f64);
+            self.gate(l, &[T_SCHED]);
+            self.gate(st, &[T_SCHED]);
+        }
+        self.push(Some(P_SCHED), (CX, 340.0, CW, 20.0), Kind::Heading("Brightness (%)"));
+        self.push(Some(P_SCHED), (CX, 364.0, CW, 104.0), Kind::Card);
+        let pct = (10.0, 100.0, 5.0, Fmt::Num(0));
+        let levels = [("Daytime", "Brightness outside the schedule", s.sched_day_brightness), ("Night", "Brightness at the darkest point", s.sched_night_brightness)];
+        for (i, (title, sub, v)) in levels.iter().enumerate() {
+            let y = 364.0 + i as f32 * 52.0;
+            if i > 0 {
+                self.divider(P_SCHED, y);
+            }
+            let l = self.row_label(P_SCHED, y, title, sub);
+            let st = self.stepper(P_SCHED, RX - 132.0, y + 10.0, 132.0, pct, *v as f64);
+            self.gate(l, &[T_SCHED]);
+            self.gate(st, &[T_SCHED]);
+        }
+        self.push(
+            Some(P_SCHED),
+            (CX, 484.0, CW, 32.0),
+            Kind::Hint("Uses monitor brightness (DDC/CI or laptop panel). With no controllable display it uses extra dimming instead."),
+        );
 
         self.suppress = false;
     }
@@ -795,6 +845,12 @@ impl Dlg {
         s.poll_interval_seconds = n(N_POLL) as i32;
         s.flyout_acrylic = t[T_ACRYLIC];
         s.hotkeys_enabled = t[T_KEYS];
+        s.sched_enabled = t[T_SCHED];
+        s.sched_start_minutes = n(N_SSTART) as i32;
+        s.sched_end_minutes = n(N_SEND) as i32;
+        s.sched_ramp_minutes = n(N_SRAMP) as i32;
+        s.sched_day_brightness = n(N_SDAY) as i32;
+        s.sched_night_brightness = n(N_SNIGHT) as i32;
         (s.increase_mods, s.increase_key) = self.hotkeys[0];
         (s.decrease_mods, s.decrease_key) = self.hotkeys[1];
 

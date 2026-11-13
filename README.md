@@ -13,6 +13,7 @@ DimmerBut is written in Rust (`dimmerbut-rs/`) with native Win32 and Direct2D dr
 - **Software dimming.** Dims the whole screen, including video overlays, the taskbar and the Start menu, through the Windows Magnification API. Levels go from 0 to 90 in steps of 10.
 - **Hardware brightness.** Shows a slider for each display. External monitors are controlled over DDC/CI, and laptop panels through WMI.
 - **Monitor power.** Can turn an external monitor off from the flyout. You can hide this control in settings.
+- **Dim schedule.** Fades the screen down between a start and end time and back up afterwards, easing smoothly over a configurable ramp. It changes monitor brightness (DDC/CI or laptop panel), and falls back to extra dimming when no display can be controlled.
 - **Night mode.** Shifts colour temperature from daytime, to sunset, to bedtime, then back in the morning. Sunrise and sunset are calculated offline from your location. You can set your location by city name, which uses the [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api).
 - **Global hotkeys.** Optional keys to raise or lower the dim level.
 - **Start with Windows.** Adds a per-user `Run` entry, so no admin rights are needed.
